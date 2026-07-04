@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"go.kreikol.dev/dotsmithy/internal/manifest"
+	"go.kreikol.dev/dotsmithy/internal/state"
 	"go.kreikol.dev/dotsmithy/internal/stow"
 )
 
@@ -26,11 +27,27 @@ en tu $HOME apuntando a los ficheros reales del repo. Es idempotente: si ya
 está enlazado, no hace nada; si falta, lo crea. Con --dry-run enseña el plan
 sin tocar nada.
 
-Nota: de momento el perfil y la ruta del contenido se pasan por flags. Cuando
-exista el estado local (init), link los cogerá de ahí si no los indicas.`,
+Los flags mandan; lo que no indiques, se coge del estado local (lo que dejó
+init). Si no hay estado ni flags, no puede saber qué perfil aplicar.`,
 		RunE: func(_ *cobra.Command, _ []string) error {
+			// Resolución: flag > estado local > (para content) el directorio actual.
+			if profile == "" || contentDir == "" {
+				if st, found, err := state.LoadDefault(); err != nil {
+					return err
+				} else if found {
+					if profile == "" {
+						profile = st.Profile
+					}
+					if contentDir == "" {
+						contentDir = st.Content
+					}
+				}
+			}
+			if contentDir == "" {
+				contentDir = "."
+			}
 			if profile == "" {
-				return fmt.Errorf("necesito saber el perfil: pásalo con --profile <nombre>")
+				return fmt.Errorf("no sé qué perfil aplicar: pásalo con --profile <nombre> o haz antes «dots init»")
 			}
 
 			manifestPath := filepath.Join(contentDir, "dots.yaml")
@@ -76,8 +93,8 @@ exista el estado local (init), link los cogerá de ahí si no los indicas.`,
 		},
 	}
 
-	cmd.Flags().StringVar(&contentDir, "content", ".", "ruta al repo de contenido (donde está dots.yaml)")
-	cmd.Flags().StringVar(&profile, "profile", "", "perfil de máquina a aplicar")
+	cmd.Flags().StringVar(&contentDir, "content", "", "ruta al repo de contenido (por defecto: la del estado local, o el directorio actual)")
+	cmd.Flags().StringVar(&profile, "profile", "", "perfil de máquina a aplicar (por defecto: el del estado local)")
 	return cmd
 }
 
