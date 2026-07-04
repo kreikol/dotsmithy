@@ -1,0 +1,20 @@
+version: 1
+
+profiles:
+  minipc: { description: "Escritorio fijo de casa (piloto v1)" }
+
+stow:
+  target: ~
+  subdir: home
+  layers:
+    - shared
+    - "machines/{profile}"
+
+packages:
+  managers: [dnf]
+  dnf:
+    copr: [atim/lazygit]
+
+hooks:
+  dir: hooks
+  points: [post-link, post-packages, post-init]
