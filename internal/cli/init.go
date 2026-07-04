@@ -114,7 +114,12 @@ por permisos, revisa que la clave tenga acceso al repo.`,
 			if err := applyHook(m, absContent, profile, "post-packages"); err != nil {
 				return err
 			}
-			return applyHook(m, absContent, profile, "post-init")
+			if err := applyHook(m, absContent, profile, "post-init"); err != nil {
+				return err
+			}
+			// Fase final: externals (best-effort, no aborta el init).
+			runExternals(m, absContent, profile)
+			return nil
 		},
 	}
 

@@ -54,7 +54,12 @@ Perfil y contenido se resuelven como en link: flags o el estado local.`,
 			if err := applyPackages(m, contentDir, m.ResolvedLayers(profile)); err != nil {
 				return err
 			}
-			return applyHook(m, contentDir, profile, "post-packages")
+			if err := applyHook(m, contentDir, profile, "post-packages"); err != nil {
+				return err
+			}
+			// Fase final: externals (best-effort, no aborta el update).
+			runExternals(m, contentDir, profile)
+			return nil
 		},
 	}
 

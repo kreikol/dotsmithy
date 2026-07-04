@@ -10,8 +10,11 @@ fail() {
 	exit 1
 }
 
+# git hace falta para los externals de tipo git.
+dnf install -y git-core >/dev/null
+
 C=/tmp/content
-mkdir -p "$C/shared/packages" "$C/hooks/post-link" "$C/hooks/post-init" "$C/system"
+mkdir -p "$C/shared/packages" "$C/hooks/post-link" "$C/hooks/post-init" "$C/hooks/externals" "$C/system"
 cat >"$C/dots.yaml" <<'EOF'
 version: 1
 profiles: { minipc: { description: "integración" } }
@@ -21,6 +24,8 @@ hooks: { points: [post-link, post-packages, post-init] }
 system:
   - { src: system/dotsmithy.conf, dest: /etc/dotsmithy.conf, type: copy, mode: "0644", validate: "grep -q hola {file}" }
   - { src: system/dots.link, dest: /etc/dotsmithy.link, type: symlink }
+externals:
+  - { dest: /tmp/ext-dest, type: git, repo: /tmp/ext-remote, ref: main, post: hooks/externals/10-post.sh }
 EOF
 # Un paquete pequeño y con pocas dependencias.
 echo tree >"$C/shared/packages/dnf.txt"
@@ -35,6 +40,16 @@ EOF
 cat >"$C/hooks/post-init/10-once.sh" <<'EOF'
 touch "$DOTS_TARGET/.dots-postinit"
 EOF
+# Post del external: deja un rastro con el destino recibido.
+cat >"$C/hooks/externals/10-post.sh" <<'EOF'
+echo "$DOTS_EXTERNAL_DEST" > "$DOTS_TARGET/.ext-post"
+EOF
+
+# "Remoto" local del external (repo git con un fichero), sin red.
+git init -q -b main /tmp/ext-remote
+echo "soy un plugin externo" >/tmp/ext-remote/plugin.txt
+git -C /tmp/ext-remote add .
+git -C /tmp/ext-remote -c user.email=t@e -c user.name=t commit -q -m init
 
 echo ">> init --dry-run no toca nada (ni instala, ni estado, ni hooks)"
 dots init --profile minipc --content "$C" --dry-run
@@ -42,6 +57,7 @@ if rpm -q tree >/dev/null 2>&1; then fail "dry-run NO debería instalar tree"; f
 if [ -e "$HOME/.config/dots/state.yaml" ]; then fail "dry-run NO debería escribir el estado"; fi
 if [ -e "$HOME/.dots-postlink" ]; then fail "dry-run NO debería ejecutar hooks"; fi
 if [ -e /etc/dotsmithy.conf ]; then fail "dry-run NO debería tocar /etc"; fi
+if [ -e /tmp/ext-dest ]; then fail "dry-run NO debería traer externals"; fi
 
 echo ">> init instala los paquetes declarados y dispara los hooks"
 dots init --profile minipc --content "$C"
@@ -54,6 +70,10 @@ echo ">> system: copia validada a /etc y symlink"
 grep -q hola /etc/dotsmithy.conf || fail "system copy: contenido incorrecto"
 [ "$(stat -c %a /etc/dotsmithy.conf)" = "644" ] || fail "system copy: mode incorrecto"
 [ -L /etc/dotsmithy.link ] || fail "system symlink no se creó"
+
+echo ">> externals: clona el repo y ejecuta su post"
+[ -f /tmp/ext-dest/plugin.txt ] || fail "el external git no se materializó"
+[ -f "$HOME/.ext-post" ] || fail "el post del external no se ejecutó"
 
 echo ">> init es idempotente (segunda pasada: al día)"
 out="$(dots init --profile minipc --content "$C")"
