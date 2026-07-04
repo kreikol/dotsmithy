@@ -24,27 +24,12 @@ jobs:
         with:
           go-version-file: go.mod
       - name: compilar dots (estático)
-        run: CGO_ENABLED=0 go build -trimpath -o lab/dots ./cmd/dots
-      - name: contenido de muestra
-        run: |
-          mkdir -p lab/content/shared/home/.config/dotsmithy lab/content/shared/packages lab/content/hooks/post-link
-          cat > lab/content/dots.yaml <<'EOF'
-          version: 1
-          profiles: { minipc: { description: "lab" } }
-          stow: { layers: [shared, "machines/{profile}"] }
-          packages: { managers: [dnf] }
-          hooks: { points: [post-link, post-packages, post-init] }
-          EOF
-          # Un dotfile que NO existe en la imagen base (evita conflicto con el
-          # .bashrc que Fedora ya trae: dots nunca pisa ficheros reales).
-          printf 'lab=1\n' > lab/content/shared/home/.config/dotsmithy/lab.conf
-          echo tree > lab/content/shared/packages/dnf.txt
-          cat > lab/content/hooks/post-link/10-hello.sh <<'EOF'
-          echo "hook post-link del lab, perfil=$DOTS_PROFILE" > "$DOTS_TARGET/.lab-hook"
-          EOF
+        run: CGO_ENABLED=0 go build -trimpath -o tests/lab/dots ./cmd/dots
+      # El contenido de muestra vive versionado en tests/lab/content (fixture);
+      # aquí solo se monta junto al binario recién compilado.
       - name: levantar Fedora, aplicar y abrir SSH (tmate)
         run: |
-          docker run --rm -v "$PWD/lab:/lab" fedora:41 bash -c '
+          docker run --rm -v "$PWD/tests/lab:/lab:ro" fedora:41 bash -c '
             set -e
             echo ">> instalando dependencias (git, tmate)…"
             dnf install -y git tmate >/dev/null
