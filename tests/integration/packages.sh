@@ -30,6 +30,12 @@ cat >"$C/hooks/post-init/10-once.sh" <<'EOF'
 touch "$DOTS_TARGET/.dots-postinit"
 EOF
 
+echo ">> init --dry-run no toca nada (ni instala, ni estado, ni hooks)"
+dots init --profile minipc --content "$C" --dry-run
+if rpm -q tree >/dev/null 2>&1; then fail "dry-run NO debería instalar tree"; fi
+if [ -e "$HOME/.config/dots/state.yaml" ]; then fail "dry-run NO debería escribir el estado"; fi
+if [ -e "$HOME/.dots-postlink" ]; then fail "dry-run NO debería ejecutar hooks"; fi
+
 echo ">> init instala los paquetes declarados y dispara los hooks"
 dots init --profile minipc --content "$C"
 rpm -q tree >/dev/null 2>&1 || fail "tree no quedó instalado tras init"
