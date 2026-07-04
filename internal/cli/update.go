@@ -15,6 +15,7 @@ import (
 func newUpdateCmd() *cobra.Command {
 	var profile string
 	var contentDir string
+	var backup bool
 
 	cmd := &cobra.Command{
 		Use:   "update",
@@ -42,7 +43,7 @@ Perfil y contenido se resuelven como en link: flags o el estado local.`,
 			}
 
 			// 3) Reaplicar: link + system → post-link → paquetes → post-packages.
-			if err := applyStow(m, contentDir, profile); err != nil {
+			if err := applyStow(m, contentDir, profile, backup); err != nil {
 				return err
 			}
 			if err := applySystem(m, contentDir); err != nil {
@@ -65,6 +66,7 @@ Perfil y contenido se resuelven como en link: flags o el estado local.`,
 
 	cmd.Flags().StringVar(&profile, "profile", "", "perfil de máquina (por defecto: el del estado local)")
 	cmd.Flags().StringVar(&contentDir, "content", "", "ruta al repo de contenido (por defecto: la del estado local)")
+	cmd.Flags().BoolVar(&backup, "backup", false, "si hay ficheros reales donde irían symlinks, respáldalos (.dots-bak) y enlaza")
 	return cmd
 }
 
