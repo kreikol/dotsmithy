@@ -4,7 +4,7 @@
 // vive en internal/cli; aquí solo se cede el control al árbol de cobra.
 package main
 
-import "kreikol.dev/dotsmithy/internal/cli"
+import "go.kreikol.dev/dotsmithy/internal/cli"
 
 func main() {
 	cli.Execute()
