@@ -30,26 +30,10 @@ sin tocar nada.
 Los flags mandan; lo que no indiques, se coge del estado local (lo que dejó
 init). Si no hay estado ni flags, no puede saber qué perfil aplicar.`,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			// Resolución: flag > estado local > (para content) el directorio actual.
-			if profile == "" || contentDir == "" {
-				if st, found, err := state.LoadDefault(); err != nil {
-					return err
-				} else if found {
-					if profile == "" {
-						profile = st.Profile
-					}
-					if contentDir == "" {
-						contentDir = st.Content
-					}
-				}
+			profile, contentDir, err := resolveProfileAndContent(profile, contentDir)
+			if err != nil {
+				return err
 			}
-			if contentDir == "" {
-				contentDir = "."
-			}
-			if profile == "" {
-				return fmt.Errorf("no sé qué perfil aplicar: pásalo con --profile <nombre> o haz antes «dots init»")
-			}
-
 			m, err := loadManifestForProfile(contentDir, profile)
 			if err != nil {
 				return err
@@ -61,6 +45,32 @@ init). Si no hay estado ni flags, no puede saber qué perfil aplicar.`,
 	cmd.Flags().StringVar(&contentDir, "content", "", "ruta al repo de contenido (por defecto: la del estado local, o el directorio actual)")
 	cmd.Flags().StringVar(&profile, "profile", "", "perfil de máquina a aplicar (por defecto: el del estado local)")
 	return cmd
+}
+
+// resolveProfileAndContent decide qué perfil y qué contenido usar: los flags
+// mandan; lo que falte se coge del estado local (lo que dejó init); el contenido
+// cae al directorio actual si no hay nada. Sin perfil, error que guía a init.
+// Lo comparten link y sync.
+func resolveProfileAndContent(profile, contentDir string) (string, string, error) {
+	if profile == "" || contentDir == "" {
+		if st, found, err := state.LoadDefault(); err != nil {
+			return "", "", err
+		} else if found {
+			if profile == "" {
+				profile = st.Profile
+			}
+			if contentDir == "" {
+				contentDir = st.Content
+			}
+		}
+	}
+	if contentDir == "" {
+		contentDir = "."
+	}
+	if profile == "" {
+		return "", "", fmt.Errorf("no sé qué perfil usar: pásalo con --profile <nombre> o haz antes «dots init»")
+	}
+	return profile, contentDir, nil
 }
 
 // loadManifestForProfile carga el manifiesto del contenido y comprueba que el
