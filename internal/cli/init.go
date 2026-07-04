@@ -50,11 +50,26 @@ por permisos, revisa que la clave tenga acceso al repo.`,
 				if err != nil {
 					return err
 				}
-				if err := cloneOrReuse(remote, dest); err != nil {
-					return err
+				if dryRun {
+					// En dry-run no clonamos. Si ya está clonado, lo reutilizamos
+					// para poder previsualizar el resto; si no, informamos y
+					// paramos: sin el contenido no hay manifiesto que enseñar.
+					if isGitRepo(dest) {
+						fmt.Printf("dry-run: reutilizaría el contenido ya clonado en %s\n", dest)
+						contentDir = dest
+					} else {
+						fmt.Printf("dry-run: clonaría %s en %s\n", remote, dest)
+						fmt.Printf("dry-run: guardaría el estado (perfil %q, contenido en %s)\n", profile, dest)
+						fmt.Println("dry-run: sin el contenido no puedo previsualizar link/paquetes/hooks; clónalo o usa --content para ver el plan completo.")
+						return nil
+					}
+				} else {
+					if err := cloneOrReuse(remote, dest); err != nil {
+						return err
+					}
+					contentDir = dest
+					savedRemote = remote
 				}
-				contentDir = dest
-				savedRemote = remote
 			}
 			absContent, err := filepath.Abs(contentDir)
 			if err != nil {
@@ -68,14 +83,19 @@ por permisos, revisa que la clave tenga acceso al repo.`,
 			}
 
 			// 3) Guardar el estado local (perfil + ubicación del contenido).
-			if err := state.SaveDefault(&state.State{
-				Profile: profile,
-				Content: absContent,
-				Remote:  savedRemote,
-			}); err != nil {
-				return err
+			//    En dry-run solo se informa, no se escribe.
+			if dryRun {
+				fmt.Printf("dry-run: guardaría el estado (perfil %q, contenido en %s)\n", profile, absContent)
+			} else {
+				if err := state.SaveDefault(&state.State{
+					Profile: profile,
+					Content: absContent,
+					Remote:  savedRemote,
+				}); err != nil {
+					return err
+				}
+				fmt.Printf("estado guardado: perfil %q, contenido en %s\n", profile, absContent)
 			}
-			fmt.Printf("estado guardado: perfil %q, contenido en %s\n", profile, absContent)
 
 			// 4) Aplicar en orden (ADR 0012): link → post-link → paquetes →
 			//    post-packages → post-init (este último solo en init).
@@ -115,12 +135,18 @@ func defaultContentDir() (string, error) {
 	return filepath.Join(dir, "dots", "content"), nil
 }
 
+// isGitRepo indica si dir contiene un repo git (tiene un .git).
+func isGitRepo(dir string) bool {
+	_, err := os.Stat(filepath.Join(dir, ".git"))
+	return err == nil
+}
+
 // cloneOrReuse clona el contenido en dest, o lo reutiliza si ya hay un repo ahí
 // (idempotente). Si en dest hay algo que no es un repo git, aborta.
 func cloneOrReuse(remote, dest string) error {
 	if _, err := os.Stat(dest); err == nil {
 		// dest existe: ¿es ya un repo git?
-		if _, err := os.Stat(filepath.Join(dest, ".git")); err == nil {
+		if isGitRepo(dest) {
 			fmt.Printf("ya tienes el contenido en %s, lo reutilizo (no clono otra vez)\n", dest)
 			return nil
 		}
