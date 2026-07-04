@@ -77,11 +77,21 @@ por permisos, revisa que la clave tenga acceso al repo.`,
 			}
 			fmt.Printf("estado guardado: perfil %q, contenido en %s\n", profile, absContent)
 
-			// 4) Aplicar: primero los symlinks (link), luego los paquetes.
+			// 4) Aplicar en orden (ADR 0012): link → post-link → paquetes →
+			//    post-packages → post-init (este último solo en init).
 			if err := applyStow(m, absContent, profile); err != nil {
 				return err
 			}
-			return applyPackages(m, absContent, m.ResolvedLayers(profile))
+			if err := applyHook(m, absContent, profile, "post-link"); err != nil {
+				return err
+			}
+			if err := applyPackages(m, absContent, m.ResolvedLayers(profile)); err != nil {
+				return err
+			}
+			if err := applyHook(m, absContent, profile, "post-packages"); err != nil {
+				return err
+			}
+			return applyHook(m, absContent, profile, "post-init")
 		},
 	}
 

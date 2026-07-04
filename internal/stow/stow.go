@@ -89,7 +89,7 @@ func (p Plan) Changes() int {
 //   - target: destino ("~" se expande a $HOME).
 //   - layers: capas ya resueltas (sin comodines), en orden de aplicación.
 func BuildPlan(contentDir, subdir, target string, layers []string) (Plan, error) {
-	targetDir, err := expandTarget(target)
+	targetDir, err := ExpandTarget(target)
 	if err != nil {
 		return Plan{}, err
 	}
@@ -247,8 +247,9 @@ func linkFile(a Action) error {
 	return nil
 }
 
-// expandTarget expande un destino que empiece por "~" a la home del usuario.
-func expandTarget(target string) (string, error) {
+// ExpandTarget expande un destino que empiece por "~" a la home del usuario.
+// Exportada para que otros paquetes (ej. hooks) resuelvan el mismo destino.
+func ExpandTarget(target string) (string, error) {
 	if target == "~" || strings.HasPrefix(target, "~/") {
 		home, err := os.UserHomeDir()
 		if err != nil {
