@@ -41,8 +41,11 @@ Perfil y contenido se resuelven como en link: flags o el estado local.`,
 				return err
 			}
 
-			// 3) Reaplicar: link → post-link → paquetes → post-packages.
+			// 3) Reaplicar: link + system → post-link → paquetes → post-packages.
 			if err := applyStow(m, contentDir, profile); err != nil {
+				return err
+			}
+			if err := applySystem(m, contentDir); err != nil {
 				return err
 			}
 			if err := applyHook(m, contentDir, profile, "post-link"); err != nil {
