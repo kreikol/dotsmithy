@@ -173,6 +173,31 @@ func TestDryRunDoesNotTouchDisk(t *testing.T) {
 	}
 }
 
+func TestGitkeepIgnored(t *testing.T) {
+	content, target := setup(t)
+	// La capa tiene un .gitkeep (centinela) y un fichero real.
+	writeFile(t, filepath.Join(content, "shared", "home", ".gitkeep"), "")
+	writeFile(t, filepath.Join(content, "shared", "home", ".keep"), "")
+	writeFile(t, filepath.Join(content, "shared", "home", ".bashrc"), "x\n")
+
+	plan, err := BuildPlan(content, "home", target, []string{"shared"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Actions) != 1 {
+		t.Fatalf("quiero 1 acción (solo .bashrc), tengo %d: %+v", len(plan.Actions), plan.Actions)
+	}
+	if err := plan.Apply(false, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(filepath.Join(target, ".gitkeep")); !os.IsNotExist(err) {
+		t.Errorf(".gitkeep NO debería desplegarse")
+	}
+	if _, err := os.Lstat(filepath.Join(target, ".bashrc")); err != nil {
+		t.Errorf(".bashrc sí debería desplegarse: %v", err)
+	}
+}
+
 func TestMissingLayerSubdirSkipped(t *testing.T) {
 	content, target := setup(t)
 	// shared tiene home/, machines/minipc NO tiene home/ (capa sin stow).

@@ -9,6 +9,14 @@ import (
 	"strings"
 )
 
+// ignoredBasenames son ficheros que NO se despliegan aunque estén en una capa:
+// centinelas que solo sirven para que git conserve directorios vacíos. Nunca son
+// dotfiles de verdad.
+var ignoredBasenames = map[string]bool{
+	".gitkeep": true,
+	".keep":    true,
+}
+
 // ActionKind clasifica qué hay que hacer con un destino concreto.
 type ActionKind int
 
@@ -107,6 +115,10 @@ func BuildPlan(contentDir, subdir, target string, layers []string) (Plan, error)
 				return err
 			}
 			if d.IsDir() {
+				return nil
+			}
+			if ignoredBasenames[d.Name()] {
+				// Centinela de git (.gitkeep/.keep): no se despliega.
 				return nil
 			}
 			rel, err := filepath.Rel(root, path)
