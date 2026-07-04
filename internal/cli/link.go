@@ -50,52 +50,67 @@ init). Si no hay estado ni flags, no puede saber qué perfil aplicar.`,
 				return fmt.Errorf("no sé qué perfil aplicar: pásalo con --profile <nombre> o haz antes «dots init»")
 			}
 
-			manifestPath := filepath.Join(contentDir, "dots.yaml")
-			m, err := manifest.Load(manifestPath)
+			m, err := loadManifestForProfile(contentDir, profile)
 			if err != nil {
 				return err
 			}
-			if _, ok := m.Profiles[profile]; !ok {
-				return fmt.Errorf("el perfil %q no está en el manifiesto (tienes: %s)",
-					profile, strings.Join(profileNames(m), ", "))
-			}
-
-			layers := m.ResolvedLayers(profile)
-			plan, err := stow.BuildPlan(contentDir, m.Stow.Subdir, m.Stow.Target, layers)
-			if err != nil {
-				return err
-			}
-
-			if dryRun {
-				fmt.Printf("dry-run del perfil %q (capas: %s):\n", profile, strings.Join(layers, ", "))
-			}
-
-			logfn := func(s string) {
-				// Las líneas "= ..." (ya ok) solo se enseñan en verbose.
-				if !verbose && strings.HasPrefix(s, "= ") {
-					return
-				}
-				fmt.Println("  " + s)
-			}
-			if err := plan.Apply(dryRun, logfn); err != nil {
-				return err
-			}
-
-			changes := plan.Changes()
-			conflicts := len(plan.Conflicts())
-			okAlready := len(plan.Actions) - changes - conflicts
-			if dryRun {
-				fmt.Printf("dry-run: %d cambio(s), %d ya ok, %d conflicto(s).\n", changes, okAlready, conflicts)
-			} else {
-				fmt.Printf("listo: %d aplicado(s), %d ya estaban, %d conflicto(s).\n", changes, okAlready, conflicts)
-			}
-			return nil
+			return applyStow(m, contentDir, profile)
 		},
 	}
 
 	cmd.Flags().StringVar(&contentDir, "content", "", "ruta al repo de contenido (por defecto: la del estado local, o el directorio actual)")
 	cmd.Flags().StringVar(&profile, "profile", "", "perfil de máquina a aplicar (por defecto: el del estado local)")
 	return cmd
+}
+
+// loadManifestForProfile carga el manifiesto del contenido y comprueba que el
+// perfil pedido existe. Es el paso común de link e init.
+func loadManifestForProfile(contentDir, profile string) (*manifest.Manifest, error) {
+	m, err := manifest.Load(filepath.Join(contentDir, "dots.yaml"))
+	if err != nil {
+		return nil, err
+	}
+	if _, ok := m.Profiles[profile]; !ok {
+		return nil, fmt.Errorf("el perfil %q no está en el manifiesto (tienes: %s)",
+			profile, strings.Join(profileNames(m), ", "))
+	}
+	return m, nil
+}
+
+// applyStow construye el plan de symlinks del perfil y lo aplica (respetando los
+// flags globales --dry-run y --verbose). Es el corazón de link, reutilizado por
+// init tras clonar y guardar el estado.
+func applyStow(m *manifest.Manifest, contentDir, profile string) error {
+	layers := m.ResolvedLayers(profile)
+	plan, err := stow.BuildPlan(contentDir, m.Stow.Subdir, m.Stow.Target, layers)
+	if err != nil {
+		return err
+	}
+
+	if dryRun {
+		fmt.Printf("dry-run del perfil %q (capas: %s):\n", profile, strings.Join(layers, ", "))
+	}
+
+	logfn := func(s string) {
+		// Las líneas "= ..." (ya ok) solo se enseñan en verbose.
+		if !verbose && strings.HasPrefix(s, "= ") {
+			return
+		}
+		fmt.Println("  " + s)
+	}
+	if err := plan.Apply(dryRun, logfn); err != nil {
+		return err
+	}
+
+	changes := plan.Changes()
+	conflicts := len(plan.Conflicts())
+	okAlready := len(plan.Actions) - changes - conflicts
+	if dryRun {
+		fmt.Printf("dry-run: %d cambio(s), %d ya ok, %d conflicto(s).\n", changes, okAlready, conflicts)
+	} else {
+		fmt.Printf("listo: %d aplicado(s), %d ya estaban, %d conflicto(s).\n", changes, okAlready, conflicts)
+	}
+	return nil
 }
 
 // profileNames devuelve los nombres de perfil ordenados, para mensajes de ayuda.
