@@ -1,0 +1,38 @@
+# CI de dotsmithy: gate de cada PR (y de los push a main).
+# Compila, pasa go vet + go test y linta el shim de bootstrap.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: build + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: build
+        run: go build -o dist/dots ./cmd/dots
+      - name: vet
+        run: go vet ./...
+      - name: test
+        run: go test ./...
+
+  shellcheck:
+    name: shellcheck (shim)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck + sintaxis
+        run: |
+          shellcheck script/install.sh tests/integration/run.sh tests/integration/smoke.sh
+          bash -n script/install.sh

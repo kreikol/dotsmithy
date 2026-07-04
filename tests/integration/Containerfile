@@ -1,0 +1,16 @@
+# Contenedor de integración: Fedora limpia para probar el motor tal cual lo
+# vería una máquina real recién puesta (sin runtime de Go, binario estático).
+#
+# El binario se compila fuera (linux/amd64, estático) y se copia aquí. Así el
+# test comprueba de verdad que el motor arranca en una Fedora pelada.
+FROM fedora:41
+
+# Copiamos el binario ya compilado (lo genera run.sh antes del build).
+COPY dots /usr/local/bin/dots
+RUN ln -sf dots /usr/local/bin/ds
+
+# Copiamos el smoke test y lo dejamos como comando por defecto.
+COPY smoke.sh /usr/local/bin/smoke.sh
+RUN chmod +x /usr/local/bin/smoke.sh
+
+CMD ["/usr/local/bin/smoke.sh"]

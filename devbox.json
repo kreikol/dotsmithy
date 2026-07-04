@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/main/.schema/devbox.schema.json",
+  "packages": [
+    "go@1.25",
+    "shellcheck@latest",
+    "goreleaser@latest"
+  ],
+  "env": {
+    "GOFLAGS": "-mod=mod"
+  },
+  "shell": {
+    "init_hook": [
+      "echo \"[devbox motor dotsmithy] go=$(go version 2>/dev/null | awk '{print $3}') shellcheck=$(shellcheck --version 2>/dev/null | awk '/version:/{print $2}')\""
+    ],
+    "scripts": {
+      "build": "go build -o dist/dots ./cmd/dots",
+      "test": "go test ./...",
+      "lint-shim": "shellcheck script/*.sh && bash -n script/install.sh"
+    }
+  }
+}

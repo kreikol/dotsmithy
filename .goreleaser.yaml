@@ -1,0 +1,44 @@
+# Configuración de goreleaser para el motor dotsmithy.
+# Empaqueta el binario «dots» para linux (amd64 + arm64), estático, y arma la
+# Release en GitHub con archivos tar.gz + checksums.
+version: 2
+
+project_name: dotsmithy
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: dots
+    main: ./cmd/dots
+    binary: dots
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X kreikol.dev/dotsmithy/internal/cli.version={{ .Version }}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - script/install.sh
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  github:
+    owner: kreikol
+    name: dotsmithy
