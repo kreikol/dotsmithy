@@ -1,6 +1,9 @@
-// Paquete hooks: ejecución de los hooks del contenido en los momentos clave.
+// Paquete hooks: ejecución de los hooks del contenido en los momentos clave
+// del ciclo de vida (ADR 0007).
 //
-// Responsabilidad (F2): ejecutar los hooks (post-link, post-packages,
-// post-init, externals) en orden léxico, con un contrato de variables de
-// entorno y política fail-fast. En F0 es solo el hueco.
+// Responsabilidad: dado un punto (post-link/post-packages/post-init), ejecutar
+// los scripts hooks/<punto>/*.sh en orden léxico, con bash, con cwd = raíz del
+// contenido, pasando el contexto por variables de entorno (DOTS_*), y política
+// fail-fast (si un hook falla, se aborta nombrándolo). Los hooks son
+// responsabilidad del contenido: deben ser idempotentes y no interactivos.
 package hooks
