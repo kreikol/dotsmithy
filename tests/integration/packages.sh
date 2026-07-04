@@ -85,7 +85,7 @@ rpm -q jq >/dev/null 2>&1 || fail "jq no quedó instalado tras add"
 grep -qx jq "$C/shared/packages/dnf.txt" || fail "jq no quedó registrado en la lista"
 
 echo ">> link --backup respalda un dotfile preexistente (.bashrc de la imagen)"
-[ -f "$HOME/.bashrc" ] && [ ! -L "$HOME/.bashrc" ] || fail "esperaba un .bashrc REAL de base"
+if [ ! -f "$HOME/.bashrc" ] || [ -L "$HOME/.bashrc" ]; then fail "esperaba un .bashrc REAL de base"; fi
 mkdir -p "$C/shared/home"
 echo "export FROM_DOTS=1" >"$C/shared/home/.bashrc"
 dots link --profile minipc --content "$C" --backup
