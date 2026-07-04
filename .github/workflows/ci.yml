@@ -1,5 +1,5 @@
 # CI de dotsmithy: gate de cada PR (y de los push a main).
-# Compila, pasa go vet + go test y linta el shim de bootstrap.
+# Compila, pasa go vet + go test, linta el shim y corre la integración en Fedora.
 name: CI
 
 on:
@@ -34,5 +34,30 @@ jobs:
       - uses: actions/checkout@v5
       - name: shellcheck + sintaxis
         run: |
-          shellcheck script/install.sh tests/integration/run.sh tests/integration/smoke.sh
+          shellcheck script/install.sh tests/integration/*.sh
           bash -n script/install.sh
+
+  integration:
+    name: integración (Fedora)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      # Compilamos en el host (estático) el binario que probaremos dentro de Fedora.
+      - name: build (linux/amd64 estático)
+        run: CGO_ENABLED=0 go build -trimpath -o tests/integration/dots ./cmd/dots
+      # Corremos los escenarios reales dentro de una Fedora limpia (dnf nativo).
+      # Es el mismo flujo que tests/integration/run.sh en local, pero con docker
+      # (lo que traen los runners) en vez de podman.
+      - name: escenarios en Fedora (smoke + init/link/paquetes)
+        run: |
+          docker run --rm -v "$PWD:/w" -w /w fedora:41 bash -c '
+            set -euo pipefail
+            install -m 0755 tests/integration/dots /usr/local/bin/dots
+            ln -sf dots /usr/local/bin/ds
+            bash tests/integration/smoke.sh
+            bash tests/integration/packages.sh
+          '
