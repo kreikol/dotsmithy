@@ -41,7 +41,7 @@ func TestApplyCreatesSymlink(t *testing.T) {
 	if plan.Changes() != 1 {
 		t.Fatalf("quiero 1 cambio, tengo %d (%+v)", plan.Changes(), plan.Actions)
 	}
-	if err := plan.Apply(false, nil); err != nil {
+	if err := plan.Apply(false, false, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -66,7 +66,7 @@ func TestIdempotent(t *testing.T) {
 	writeFile(t, filepath.Join(content, "shared", "home", ".bashrc"), "x\n")
 
 	plan, _ := BuildPlan(content, "home", target, []string{"shared"})
-	if err := plan.Apply(false, nil); err != nil {
+	if err := plan.Apply(false, false, nil); err != nil {
 		t.Fatal(err)
 	}
 	// Segunda pasada: nada que cambiar.
@@ -93,7 +93,7 @@ func TestOverlayLastLayerWins(t *testing.T) {
 	if len(plan.Actions) != 1 {
 		t.Fatalf("quiero 1 acción, tengo %d", len(plan.Actions))
 	}
-	if err := plan.Apply(false, nil); err != nil {
+	if err := plan.Apply(false, false, nil); err != nil {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(filepath.Join(target, ".bashrc"))
@@ -107,7 +107,7 @@ func TestNestedDirsCreated(t *testing.T) {
 	writeFile(t, filepath.Join(content, "shared", "home", ".config", "nvim", "init.lua"), "-- vim\n")
 
 	plan, _ := BuildPlan(content, "home", target, []string{"shared"})
-	if err := plan.Apply(false, nil); err != nil {
+	if err := plan.Apply(false, false, nil); err != nil {
 		t.Fatal(err)
 	}
 	dest := filepath.Join(target, ".config", "nvim", "init.lua")
@@ -127,12 +127,64 @@ func TestConflictWithRealFileAborts(t *testing.T) {
 		t.Fatalf("quiero 1 conflicto, tengo %d", len(plan.Conflicts()))
 	}
 	// Apply (no dry-run) debe fallar y NO tocar el fichero real.
-	if err := plan.Apply(false, nil); err == nil {
+	if err := plan.Apply(false, false, nil); err == nil {
 		t.Fatal("esperaba error por conflicto")
 	}
 	data, _ := os.ReadFile(filepath.Join(target, ".bashrc"))
 	if string(data) != "el mío de siempre\n" {
 		t.Errorf("el fichero real se tocó: %q", string(data))
+	}
+}
+
+func TestBackupOnConflict(t *testing.T) {
+	content, target := setup(t)
+	src := filepath.Join(content, "shared", "home", ".bashrc")
+	writeFile(t, src, "el del repo\n")
+	dest := filepath.Join(target, ".bashrc")
+	writeFile(t, dest, "el mío de siempre\n")
+
+	plan, _ := BuildPlan(content, "home", target, []string{"shared"})
+	// Con backup, el conflicto NO es fatal.
+	if err := plan.Apply(false, true, nil); err != nil {
+		t.Fatalf("con --backup no debería fallar: %v", err)
+	}
+	// El destino ahora es un symlink al fichero del repo.
+	got, err := os.Readlink(dest)
+	if err != nil {
+		t.Fatalf("el destino debería ser un symlink: %v", err)
+	}
+	want, _ := filepath.Abs(src)
+	if got != want {
+		t.Errorf("symlink a %q, quiero %q", got, want)
+	}
+	// El original quedó respaldado en .dots-bak con su contenido intacto.
+	bak, err := os.ReadFile(dest + ".dots-bak")
+	if err != nil {
+		t.Fatalf("no se creó el backup: %v", err)
+	}
+	if string(bak) != "el mío de siempre\n" {
+		t.Errorf("el backup no conserva el original: %q", string(bak))
+	}
+}
+
+func TestBackupDoesNotClobberPreviousBackup(t *testing.T) {
+	content, target := setup(t)
+	writeFile(t, filepath.Join(content, "shared", "home", ".bashrc"), "repo\n")
+	dest := filepath.Join(target, ".bashrc")
+	writeFile(t, dest, "actual\n")
+	// Ya existe un backup anterior: no debe pisarse.
+	writeFile(t, dest+".dots-bak", "backup viejo\n")
+
+	plan, _ := BuildPlan(content, "home", target, []string{"shared"})
+	if err := plan.Apply(false, true, nil); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(dest + ".dots-bak"); string(b) != "backup viejo\n" {
+		t.Errorf("se pisó el backup anterior: %q", string(b))
+	}
+	// El nuevo backup usa un nombre libre (.dots-bak.1).
+	if b, _ := os.ReadFile(dest + ".dots-bak.1"); string(b) != "actual\n" {
+		t.Errorf("el nuevo backup debería ir a .dots-bak.1, tengo %q", string(b))
 	}
 }
 
@@ -150,7 +202,7 @@ func TestUpdateRepointsSymlink(t *testing.T) {
 	if plan.Actions[0].Kind != ActionUpdate {
 		t.Fatalf("quiero ActionUpdate, tengo %v", plan.Actions[0].Kind)
 	}
-	if err := plan.Apply(false, nil); err != nil {
+	if err := plan.Apply(false, false, nil); err != nil {
 		t.Fatal(err)
 	}
 	got, _ := os.Readlink(dest)
@@ -165,7 +217,7 @@ func TestDryRunDoesNotTouchDisk(t *testing.T) {
 	writeFile(t, filepath.Join(content, "shared", "home", ".bashrc"), "x\n")
 
 	plan, _ := BuildPlan(content, "home", target, []string{"shared"})
-	if err := plan.Apply(true, nil); err != nil {
+	if err := plan.Apply(true, false, nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Lstat(filepath.Join(target, ".bashrc")); !os.IsNotExist(err) {
@@ -187,7 +239,7 @@ func TestGitkeepIgnored(t *testing.T) {
 	if len(plan.Actions) != 1 {
 		t.Fatalf("quiero 1 acción (solo .bashrc), tengo %d: %+v", len(plan.Actions), plan.Actions)
 	}
-	if err := plan.Apply(false, nil); err != nil {
+	if err := plan.Apply(false, false, nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Lstat(filepath.Join(target, ".gitkeep")); !os.IsNotExist(err) {

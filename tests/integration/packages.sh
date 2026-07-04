@@ -84,4 +84,13 @@ dots add dnf jq --content "$C"
 rpm -q jq >/dev/null 2>&1 || fail "jq no quedó instalado tras add"
 grep -qx jq "$C/shared/packages/dnf.txt" || fail "jq no quedó registrado en la lista"
 
-echo "OK: init deja lo declarado instalado (idempotente) y add registra+instala."
+echo ">> link --backup respalda un dotfile preexistente (.bashrc de la imagen)"
+[ -f "$HOME/.bashrc" ] && [ ! -L "$HOME/.bashrc" ] || fail "esperaba un .bashrc REAL de base"
+mkdir -p "$C/shared/home"
+echo "export FROM_DOTS=1" >"$C/shared/home/.bashrc"
+dots link --profile minipc --content "$C" --backup
+[ -L "$HOME/.bashrc" ] || fail "link --backup no dejó .bashrc como symlink"
+[ -f "$HOME/.bashrc.dots-bak" ] || fail "no se respaldó el .bashrc original"
+grep -q FROM_DOTS "$HOME/.bashrc" || fail "el .bashrc no apunta al del repo"
+
+echo "OK: init deja lo declarado instalado (idempotente), add registra+instala y --backup respalda."

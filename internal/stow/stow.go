@@ -180,17 +180,22 @@ func classify(dest, src string) (ActionKind, error) {
 	return ActionConflict, nil
 }
 
-// Apply ejecuta el plan. Si hay conflictos, aborta ANTES de tocar nada y los
-// devuelve como error (nunca pisa ficheros reales). Con dryRun no modifica el
-// disco: solo informa por log. log puede ser nil.
-func (p Plan) Apply(dryRun bool, log func(string)) error {
+// Apply ejecuta el plan. Con dryRun no modifica el disco: solo informa por log.
+// log puede ser nil.
+//
+// Ante un conflicto (hay un fichero/directorio REAL donde iría el symlink):
+//   - sin backup: aborta ANTES de tocar nada y lo devuelve como error (nunca
+//     pisa ficheros reales).
+//   - con backup: mueve el original a un «.dots-bak» y crea el symlink.
+func (p Plan) Apply(dryRun bool, backup bool, log func(string)) error {
 	if log == nil {
 		log = func(string) {}
 	}
 
-	if conflicts := p.Conflicts(); len(conflicts) > 0 {
+	// Sin backup, los conflictos son fatales: se avisa y se aborta sin tocar nada.
+	if conflicts := p.Conflicts(); len(conflicts) > 0 && !backup {
 		var b strings.Builder
-		fmt.Fprintf(&b, "hay %d conflicto(s): tienes ficheros reales donde irían symlinks. Quítalos o muévelos y reintenta:", len(conflicts))
+		fmt.Fprintf(&b, "hay %d conflicto(s): tienes ficheros reales donde irían symlinks. Quítalos, muévelos o usa --backup:", len(conflicts))
 		for _, c := range conflicts {
 			fmt.Fprintf(&b, "\n  - %s", c.Dest)
 		}
@@ -207,10 +212,22 @@ func (p Plan) Apply(dryRun bool, log func(string)) error {
 		case ActionSkip:
 			log(fmt.Sprintf("= %s (ya ok)", a.Dest))
 		case ActionConflict:
-			// Ya informado arriba; en dry-run se muestra el detalle.
-			if dryRun {
-				log(fmt.Sprintf("! %s (conflicto: hay algo real ahí)", a.Dest))
+			if !backup {
+				// Sin backup ya se ha abortado arriba (salvo dry-run, que informa).
+				if dryRun {
+					log(fmt.Sprintf("! %s (conflicto: hay algo real ahí)", a.Dest))
+				}
+				continue
 			}
+			if dryRun {
+				log(fmt.Sprintf("~ %s (respaldaría el original y enlazaría)", a.Dest))
+				continue
+			}
+			bak, err := backupAndLink(a)
+			if err != nil {
+				return err
+			}
+			log(fmt.Sprintf("~ %s -> %s (original respaldado en %s)", a.Dest, a.Source, filepath.Base(bak)))
 		case ActionCreate, ActionUpdate:
 			verb := "+"
 			if a.Kind == ActionUpdate {
@@ -227,6 +244,39 @@ func (p Plan) Apply(dryRun bool, log func(string)) error {
 		}
 	}
 	return nil
+}
+
+// backupAndLink mueve el fichero real del destino a un «.dots-bak» (sin pisar un
+// backup previo) y crea el symlink en su lugar. Devuelve la ruta del backup.
+func backupAndLink(a Action) (string, error) {
+	bak, err := backupPath(a.Dest)
+	if err != nil {
+		return "", err
+	}
+	if err := os.Rename(a.Dest, bak); err != nil {
+		return "", fmt.Errorf("no he podido respaldar %q: %w", a.Dest, err)
+	}
+	if err := os.Symlink(a.Source, a.Dest); err != nil {
+		return "", fmt.Errorf("no he podido crear el symlink %q tras el backup: %w", a.Dest, err)
+	}
+	return bak, nil
+}
+
+// backupPath devuelve un nombre de backup libre para dest: «dest.dots-bak», o
+// «dest.dots-bak.1», «.2»… si ya existiera (no pisa backups anteriores).
+func backupPath(dest string) (string, error) {
+	base := dest + ".dots-bak"
+	cand := base
+	for i := 1; ; i++ {
+		_, err := os.Lstat(cand)
+		if os.IsNotExist(err) {
+			return cand, nil
+		}
+		if err != nil {
+			return "", err
+		}
+		cand = fmt.Sprintf("%s.%d", base, i)
+	}
 }
 
 // linkFile crea (o repunta) un symlink, creando los directorios intermedios.

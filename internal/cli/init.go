@@ -22,6 +22,7 @@ func newInitCmd() *cobra.Command {
 	var profile string
 	var remote string
 	var contentDir string
+	var backup bool
 
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -99,7 +100,7 @@ por permisos, revisa que la clave tenga acceso al repo.`,
 
 			// 4) Aplicar en orden (ADR 0012): link + system → post-link →
 			//    paquetes → post-packages → post-init (este último solo en init).
-			if err := applyStow(m, absContent, profile); err != nil {
+			if err := applyStow(m, absContent, profile, backup); err != nil {
 				return err
 			}
 			if err := applySystem(m, absContent); err != nil {
@@ -126,6 +127,7 @@ por permisos, revisa que la clave tenga acceso al repo.`,
 	cmd.Flags().StringVar(&profile, "profile", "", "perfil de máquina a instalar (ej. minipc)")
 	cmd.Flags().StringVar(&remote, "remote", "", "URL (SSH) del repo de contenido a clonar")
 	cmd.Flags().StringVar(&contentDir, "content", "", "ruta a un repo de contenido ya presente en local (alternativa a --remote)")
+	cmd.Flags().BoolVar(&backup, "backup", false, "si hay ficheros reales donde irían symlinks, respáldalos (.dots-bak) y enlaza")
 	return cmd
 }
 

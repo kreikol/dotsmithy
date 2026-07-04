@@ -18,6 +18,7 @@ import (
 func newLinkCmd() *cobra.Command {
 	var contentDir string
 	var profile string
+	var backup bool
 
 	cmd := &cobra.Command{
 		Use:   "link",
@@ -26,6 +27,9 @@ func newLinkCmd() *cobra.Command {
 en tu $HOME apuntando a los ficheros reales del repo. Es idempotente: si ya
 está enlazado, no hace nada; si falta, lo crea. Con --dry-run enseña el plan
 sin tocar nada.
+
+Si hay un fichero real donde iría un symlink, por defecto aborta sin tocar nada.
+Con --backup, mueve ese fichero a un «.dots-bak» y crea el symlink.
 
 Los flags mandan; lo que no indiques, se coge del estado local (lo que dejó
 init). Si no hay estado ni flags, no puede saber qué perfil aplicar.`,
@@ -38,12 +42,13 @@ init). Si no hay estado ni flags, no puede saber qué perfil aplicar.`,
 			if err != nil {
 				return err
 			}
-			return applyStow(m, contentDir, profile)
+			return applyStow(m, contentDir, profile, backup)
 		},
 	}
 
 	cmd.Flags().StringVar(&contentDir, "content", "", "ruta al repo de contenido (por defecto: la del estado local, o el directorio actual)")
 	cmd.Flags().StringVar(&profile, "profile", "", "perfil de máquina a aplicar (por defecto: el del estado local)")
+	cmd.Flags().BoolVar(&backup, "backup", false, "si hay un fichero real en medio, respáldalo (.dots-bak) y enlaza")
 	return cmd
 }
 
@@ -102,9 +107,9 @@ func loadManifestForProfile(contentDir, profile string) (*manifest.Manifest, err
 }
 
 // applyStow construye el plan de symlinks del perfil y lo aplica (respetando los
-// flags globales --dry-run y --verbose). Es el corazón de link, reutilizado por
-// init tras clonar y guardar el estado.
-func applyStow(m *manifest.Manifest, contentDir, profile string) error {
+// flags globales --dry-run y --verbose, y el --backup del comando). Es el corazón
+// de link, reutilizado por init/update tras preparar el contenido.
+func applyStow(m *manifest.Manifest, contentDir, profile string, backup bool) error {
 	layers := m.ResolvedLayers(profile)
 	plan, err := stow.BuildPlan(contentDir, m.Stow.Subdir, m.Stow.Target, layers)
 	if err != nil {
@@ -122,17 +127,23 @@ func applyStow(m *manifest.Manifest, contentDir, profile string) error {
 		}
 		fmt.Println("  " + s)
 	}
-	if err := plan.Apply(dryRun, logfn); err != nil {
+	if err := plan.Apply(dryRun, backup, logfn); err != nil {
 		return err
 	}
 
 	changes := plan.Changes()
 	conflicts := len(plan.Conflicts())
 	okAlready := len(plan.Actions) - changes - conflicts
+
+	head := "listo"
 	if dryRun {
-		fmt.Printf("dry-run: %d cambio(s), %d ya ok, %d conflicto(s).\n", changes, okAlready, conflicts)
+		head = "dry-run"
+	}
+	if backup {
+		// Con backup, los conflictos se respaldan y enlazan (dejan de serlo).
+		fmt.Printf("%s: %d cambio(s), %d respaldado(s), %d ya ok.\n", head, changes, conflicts, okAlready)
 	} else {
-		fmt.Printf("listo: %d aplicado(s), %d ya estaban, %d conflicto(s).\n", changes, okAlready, conflicts)
+		fmt.Printf("%s: %d cambio(s), %d ya ok, %d conflicto(s).\n", head, changes, okAlready, conflicts)
 	}
 	return nil
 }
