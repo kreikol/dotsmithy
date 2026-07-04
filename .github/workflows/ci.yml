@@ -37,6 +37,8 @@ jobs:
           # Lint de todos los scripts .sh versionados (shim, integración, lab…).
           shellcheck $(git ls-files '*.sh')
           bash -n script/install.sh
+      - name: shim (instalación simulada)
+        run: ./tests/shim/run.sh
 
   integration:
     name: integración (Fedora)

@@ -5,8 +5,9 @@ producto: un **motor** genérico (este repo, en Go) y tu **contenido** personal
 (dotfiles reales, paquetes, perfiles de máquina) en un repo aparte. El único
 contrato entre ambos es un manifiesto declarativo, `dots.yaml`.
 
-> Estado: **F0 (andamiaje)**. El esqueleto compila y la CLI lista sus comandos,
-> pero todavía no hacen nada. La lógica llega en las siguientes fases.
+> Estado: **motor funcional** (bootstrap, `init`/`link`/`update`, paquetes, hooks,
+> `system` y externals), cubierto por tests + integración en Fedora. En fase de
+> **piloto** (minipc) antes de la primera release.
 
 ## Idea en dos líneas
 
