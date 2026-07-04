@@ -72,8 +72,11 @@ func TestGetSupported(t *testing.T) {
 }
 
 func TestDNFInstalled(t *testing.T) {
-	if _, err := exec.LookPath("rpm"); err != nil {
-		t.Skip("no hay rpm en esta máquina (no es Fedora); salto la consulta real")
+	// Ojo: Ubuntu trae un binario rpm (para manejar .rpm) pero SIN base de datos,
+	// así que "rpm" en el PATH no basta. dnf sí es propio de Fedora: lo usamos
+	// como señal de que estamos en un sistema donde la consulta tiene sentido.
+	if _, err := exec.LookPath("dnf"); err != nil {
+		t.Skip("no hay dnf en esta máquina (no es Fedora); salto la consulta real")
 	}
 	set, err := dnfManager{}.Installed()
 	if err != nil {
