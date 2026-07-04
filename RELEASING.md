@@ -15,7 +15,7 @@ sufijo de pre-release opcional (`-alpha`, `-beta`, `-rc.1`). Ejemplos válidos:
   **título** de la Release en GitHub puede ser algo más informal ("v0-alpha"),
   pero el **tag** debe ser el semver `v0.1.0-alpha`.
 
-## Cómo cortar la release
+## Cómo publicar la release
 
 Desde `main`, con todo verde:
 
@@ -33,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/kreikol/dotsmithy/main/script/insta
 
 (Para instalar una versión concreta en vez de la última: `DOTS_VERSION=v0.1.0-alpha`.)
 
-## Antes de tagear
+## Antes de publicar
 
 - `main` en verde (build + test + integración Fedora + shellcheck + shim).
 - Sin dependencias ni versiones a medio en el código.
