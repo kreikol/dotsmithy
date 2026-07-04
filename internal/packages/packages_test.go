@@ -62,6 +62,46 @@ func TestDrift(t *testing.T) {
 	}
 }
 
+func TestAddToList(t *testing.T) {
+	content := t.TempDir()
+
+	// 1) Alta en lista inexistente: crea el fichero y añade ambos.
+	added, err := AddToList(content, "shared", "dnf", []string{"git", "fzf"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(added, []string{"git", "fzf"}) {
+		t.Errorf("primera alta: quiero [git fzf], tengo %v", added)
+	}
+
+	// 2) Alta con un repetido y uno nuevo: solo se añade el nuevo.
+	added, err = AddToList(content, "shared", "dnf", []string{"git", "ripgrep", "fzf"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(added, []string{"ripgrep"}) {
+		t.Errorf("segunda alta: quiero [ripgrep], tengo %v", added)
+	}
+
+	// 3) La lista final tiene los tres, sin duplicados.
+	got, err := ReadDeclared(content, []string{"shared"}, "dnf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, []string{"fzf", "git", "ripgrep"}) {
+		t.Errorf("lista final: quiero [fzf git ripgrep], tengo %v", got)
+	}
+
+	// 4) Alta de algo ya presente: no añade nada.
+	added, err = AddToList(content, "shared", "dnf", []string{"git"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(added) != 0 {
+		t.Errorf("alta de repetido: quiero nada, tengo %v", added)
+	}
+}
+
 func TestGetSupported(t *testing.T) {
 	if _, ok := Get("dnf"); !ok {
 		t.Error("dnf debería estar soportado")

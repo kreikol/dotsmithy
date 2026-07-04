@@ -9,8 +9,9 @@ FROM fedora:41
 COPY dots /usr/local/bin/dots
 RUN ln -sf dots /usr/local/bin/ds
 
-# Copiamos el smoke test y lo dejamos como comando por defecto.
+# Copiamos los scripts de prueba (smoke + paquetes).
 COPY smoke.sh /usr/local/bin/smoke.sh
-RUN chmod +x /usr/local/bin/smoke.sh
+COPY packages.sh /usr/local/bin/packages.sh
+RUN chmod +x /usr/local/bin/smoke.sh /usr/local/bin/packages.sh
 
 CMD ["/usr/local/bin/smoke.sh"]

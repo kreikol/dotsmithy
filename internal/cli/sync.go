@@ -66,7 +66,7 @@ Perfil y contenido se resuelven igual que en link: flags, o el estado local.`,
 			if totalMissing == 0 {
 				fmt.Println("todo lo declarado está instalado. 👌")
 			} else {
-				fmt.Printf("faltan %d paquete(s) por instalar. (la instalación llegará con add.)\n", totalMissing)
+				fmt.Printf("faltan %d paquete(s) por instalar. Instálalos con «dots add» o aplicando «dots init».\n", totalMissing)
 			}
 			return nil
 		},
