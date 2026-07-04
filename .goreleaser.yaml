@@ -23,7 +23,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -X kreikol.dev/dotsmithy/internal/cli.version={{ .Version }}
+      - -s -w -X go.kreikol.dev/dotsmithy/internal/cli.version={{ .Version }}
 
 archives:
   - id: default

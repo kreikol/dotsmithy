@@ -1,4 +1,4 @@
-module kreikol.dev/dotsmithy
+module go.kreikol.dev/dotsmithy
 
 go 1.25.11
 
