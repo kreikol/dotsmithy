@@ -15,7 +15,7 @@ jobs:
     name: build + test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -31,7 +31,7 @@ jobs:
     name: shellcheck (shim)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: shellcheck + sintaxis
         run: |
           shellcheck script/install.sh tests/integration/run.sh tests/integration/smoke.sh
