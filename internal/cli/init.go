@@ -77,8 +77,11 @@ por permisos, revisa que la clave tenga acceso al repo.`,
 			}
 			fmt.Printf("estado guardado: perfil %q, contenido en %s\n", profile, absContent)
 
-			// 4) Aplicar (link).
-			return applyStow(m, absContent, profile)
+			// 4) Aplicar: primero los symlinks (link), luego los paquetes.
+			if err := applyStow(m, absContent, profile); err != nil {
+				return err
+			}
+			return applyPackages(m, absContent, m.ResolvedLayers(profile))
 		},
 	}
 

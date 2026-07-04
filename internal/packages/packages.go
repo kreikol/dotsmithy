@@ -57,6 +57,52 @@ func parseList(data []byte) []string {
 	return out
 }
 
+// AddToList registra paquetes en la lista de un gestor dentro de una capa
+// (<contentDir>/<layer>/packages/<manager>.txt), sin duplicar los que ya estén.
+// Devuelve los que ha añadido de verdad. No instala nada (de eso se encarga el
+// gestor); solo toca el fichero declarativo.
+func AddToList(contentDir, layer, manager string, pkgs []string) ([]string, error) {
+	path := filepath.Join(contentDir, layer, "packages", manager+".txt")
+
+	existing := make(map[string]bool)
+	if data, err := os.ReadFile(path); err == nil {
+		for _, p := range parseList(data) {
+			existing[p] = true
+		}
+	} else if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("no he podido leer %q: %w", path, err)
+	}
+
+	var toAdd []string
+	seen := make(map[string]bool)
+	for _, p := range pkgs {
+		p = strings.TrimSpace(p)
+		if p == "" || existing[p] || seen[p] {
+			continue
+		}
+		seen[p] = true
+		toAdd = append(toAdd, p)
+	}
+	if len(toAdd) == 0 {
+		return nil, nil
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return nil, fmt.Errorf("no he podido crear el directorio de la lista: %w", err)
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return nil, fmt.Errorf("no he podido abrir %q para escribir: %w", path, err)
+	}
+	defer f.Close()
+	for _, p := range toAdd {
+		if _, err := fmt.Fprintln(f, p); err != nil {
+			return nil, fmt.Errorf("no he podido escribir en %q: %w", path, err)
+		}
+	}
+	return toAdd, nil
+}
+
 // Drift devuelve los paquetes declarados que aún NO están instalados, en el
 // mismo orden en que llegan (ReadDeclared los da ordenados).
 //

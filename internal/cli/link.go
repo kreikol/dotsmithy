@@ -73,6 +73,20 @@ func resolveProfileAndContent(profile, contentDir string) (string, string, error
 	return profile, contentDir, nil
 }
 
+// resolveContent decide qué contenido usar cuando no hace falta perfil (ej. add):
+// el flag manda; si no, el del estado local; si tampoco, el directorio actual.
+func resolveContent(contentDir string) (string, error) {
+	if contentDir != "" {
+		return contentDir, nil
+	}
+	if st, found, err := state.LoadDefault(); err != nil {
+		return "", err
+	} else if found && st.Content != "" {
+		return st.Content, nil
+	}
+	return ".", nil
+}
+
 // loadManifestForProfile carga el manifiesto del contenido y comprueba que el
 // perfil pedido existe. Es el paso común de link e init.
 func loadManifestForProfile(contentDir, profile string) (*manifest.Manifest, error) {

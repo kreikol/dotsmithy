@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+#
+# Integración de paquetes: se ejecuta DENTRO del contenedor Fedora (como root).
+# Comprueba el "hecho cuando" de F1 en la parte de paquetes: que init deja los
+# paquetes declarados instalados (idempotente) y que add registra + instala.
+set -euo pipefail
+
+fail() {
+	printf 'FALLO: %s\n' "$*" >&2
+	exit 1
+}
+
+C=/tmp/content
+mkdir -p "$C/shared/packages"
+cat >"$C/dots.yaml" <<'EOF'
+version: 1
+profiles: { minipc: { description: "integración" } }
+stow: { layers: [shared, "machines/{profile}"] }
+packages: { managers: [dnf] }
+EOF
+# Un paquete pequeño y con pocas dependencias.
+echo tree >"$C/shared/packages/dnf.txt"
+
+echo ">> init instala los paquetes declarados"
+dots init --profile minipc --content "$C"
+rpm -q tree >/dev/null 2>&1 || fail "tree no quedó instalado tras init"
+
+echo ">> init es idempotente (segunda pasada: al día)"
+out="$(dots init --profile minipc --content "$C")"
+grep -q "al día" <<<"$out" || fail "la segunda pasada de init debería decir «al día»"
+
+echo ">> add registra e instala un paquete nuevo"
+dots add dnf jq --content "$C"
+rpm -q jq >/dev/null 2>&1 || fail "jq no quedó instalado tras add"
+grep -qx jq "$C/shared/packages/dnf.txt" || fail "jq no quedó registrado en la lista"
+
+echo "OK: init deja lo declarado instalado (idempotente) y add registra+instala."

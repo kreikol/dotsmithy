@@ -26,6 +26,9 @@ podman build -t "$IMAGE" "$HERE"
 echo ">> corriendo el smoke test dentro del contenedor…"
 podman run --rm "$IMAGE"
 
+echo ">> corriendo la integración de paquetes (necesita red para dnf)…"
+podman run --rm "$IMAGE" /usr/local/bin/packages.sh
+
 echo ">> limpiando el binario temporal…"
 rm -f "$HERE/dots"
 
