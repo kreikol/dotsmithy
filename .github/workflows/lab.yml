@@ -1,0 +1,51 @@
+# Lab: entorno manual para trastear dotsmithy a mano.
+#
+# NO corre en push ni en PR: solo cuando lo lanzas tú (workflow_dispatch, desde
+# la pestaña Actions o con `gh workflow run lab.yml`). Levanta una Fedora limpia,
+# instala dots, aplica un contenido de muestra y abre una sesión SSH (tmate) que
+# se queda esperando hasta 2 h para que entres y valides. Para cerrarlo antes,
+# dentro de la sesión: `touch /tmp/close-lab`.
+name: Lab
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lab:
+    name: lab (Fedora + SSH)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: compilar dots (estático)
+        run: CGO_ENABLED=0 go build -trimpath -o tests/lab/dots ./cmd/dots
+      # El contenido de muestra vive versionado en tests/lab/content (fixture);
+      # aquí solo se monta junto al binario recién compilado.
+      - name: levantar Fedora, aplicar y abrir SSH (tmate)
+        run: |
+          docker run --rm -v "$PWD/tests/lab:/lab:ro" fedora:41 bash -c '
+            set -e
+            echo ">> instalando dependencias (git, tmate)…"
+            dnf install -y git tmate >/dev/null
+            install -m 0755 /lab/dots /usr/local/bin/dots
+            ln -sf dots /usr/local/bin/ds
+            echo ">> aplicando el contenido de muestra (dots init)…"
+            dots init --profile minipc --content /lab/content || echo "(init terminó con avisos)"
+            echo ">> abriendo sesión SSH (tmate)…"
+            tmate -S /tmp/t.sock new-session -d
+            tmate -S /tmp/t.sock wait tmate-ready
+            echo "=================== LAB LISTO ==================="
+            echo "SSH:  $(tmate -S /tmp/t.sock display -p "#{tmate_ssh}")"
+            echo "WEB:  $(tmate -S /tmp/t.sock display -p "#{tmate_web}")"
+            echo "Estás root en una Fedora con dots ya aplicado. Prueba: ds --help, ls -la ~"
+            echo "Para cerrar el lab antes de 2 h: touch /tmp/close-lab"
+            echo "================================================"
+            while [ ! -e /tmp/close-lab ]; do sleep 10; done
+            echo ">> cierre solicitado, saliendo."
+          '

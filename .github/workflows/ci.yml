@@ -34,7 +34,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: shellcheck + sintaxis
         run: |
-          shellcheck script/install.sh tests/integration/*.sh
+          # Lint de todos los scripts .sh versionados (shim, integración, lab…).
+          shellcheck $(git ls-files '*.sh')
           bash -n script/install.sh
 
   integration:

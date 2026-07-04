@@ -53,6 +53,25 @@ devbox run test        # go test ./...
 devbox run lint-shim   # shellcheck del shim de bootstrap
 ```
 
+### Tests de integración
+
+Corren el binario real en una Fedora limpia (dentro de un contenedor):
+
+```sh
+./tests/integration/run.sh
+```
+
+Esto necesita un **motor de contenedores en el sistema** (`podman` o `docker`).
+**No va en el devbox a propósito**: podman/docker son herramientas de sistema con
+integración de host (rootless, subuid/subgid, cgroups, storage) que vía Nix/devbox
+dan guerra y rara vez quedan limpias. El toolchain reproducible (Go, shellcheck,
+goreleaser) sí vive en el devbox; el motor de contenedores se toma del host. Puedes
+elegir cuál con `DOTS_CONTAINER_ENGINE=podman|docker`.
+
+En CI, la integración corre en cada PR (job «integración (Fedora)»). Además hay un
+workflow manual **Lab** (`workflow_dispatch`) que levanta una Fedora con `dots` ya
+aplicado y abre una sesión SSH (tmate) para trastear a mano.
+
 ## Licencia
 
 [MIT](LICENSE).

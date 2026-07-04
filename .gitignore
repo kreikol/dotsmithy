@@ -4,6 +4,9 @@
 /ds
 # Binario temporal que genera el arnés de integración
 /tests/integration/dots
+# Binario del motor que compila el workflow Lab (el contenido de muestra sí se
+# versiona, en tests/lab/content)
+/tests/lab/dots
 
 # Devbox: el store realizado es local de cada máquina (el manifiesto y el lock
 # sí se versionan para tener un entorno reproducible).
