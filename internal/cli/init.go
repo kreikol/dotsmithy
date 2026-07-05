@@ -15,9 +15,9 @@ import (
 // contenido (clonándolo o usando uno local), guarda el estado local y aplica
 // todo por primera vez (link). Es el comando al que cede el control el shim.
 //
-// En esta versión init asume que la clave SSH ya está lista y registrada (caso
-// del piloto minipc): no genera ni gestiona claves. Si el clone falla por auth,
-// lo dice claro.
+// Para clonar por SSH en una máquina limpia, init prepara el terreno: confía en
+// el host (known_hosts) y genera una clave ed25519 si no hay ninguna. Registrar
+// esa clave en GitHub es manual: si el clone falla, init la enseña y guía.
 func newInitCmd() *cobra.Command {
 	var profile string
 	var remote string
@@ -31,8 +31,9 @@ func newInitCmd() *cobra.Command {
 (clonándolo desde --remote por SSH, o usando el de --content si ya lo tienes en
 local), guarda el estado local y aplica todo (link).
 
-Asume que tu clave SSH ya existe y está registrada en GitHub. Si el clone falla
-por permisos, revisa que la clave tenga acceso al repo.`,
+Si clonas por SSH y no tienes clave, init te genera una (ed25519) y confía en el
+host; solo tienes que registrar esa clave en GitHub y reejecutar. Si el clone
+falla por permisos, te enseña la clave pública y cómo añadirla.`,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			if profile == "" {
 				return fmt.Errorf("necesito el perfil de máquina: pásalo con --profile <nombre>")
@@ -65,7 +66,22 @@ por permisos, revisa que la clave tenga acceso al repo.`,
 						return nil
 					}
 				} else {
+					// Si vamos a clonar de verdad (el destino aún no existe) y es
+					// por SSH, preparamos el terreno: confiar en el host y tener
+					// clave. Si el clone falla luego, guiamos para registrarla.
+					_, statErr := os.Stat(dest)
+					willClone := os.IsNotExist(statErr)
+					var pubKey string
+					if willClone && isSSHRemote(remote) {
+						if pubKey, err = prepareSSH(remote); err != nil {
+							return err
+						}
+					}
 					if err := cloneOrReuse(remote, dest); err != nil {
+						if willClone && isSSHRemote(remote) {
+							guideSSHKey(remote, pubKey)
+							return fmt.Errorf("no he podido clonar por SSH (arriba tienes cómo arreglarlo)")
+						}
 						return err
 					}
 					contentDir = dest
