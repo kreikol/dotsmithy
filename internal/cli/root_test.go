@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-// TestRootHasV1Commands verifica que la raíz registra exactamente los seis
-// comandos de la v1 (D18). Es un smoke test del contrato de la CLI: si alguien
-// añade o quita un comando sin querer, salta aquí.
+// TestRootHasV1Commands verifica que la raíz registra exactamente los comandos
+// de la CLI (los seis de la v1 más status). Es un smoke test del contrato de la
+// CLI: si alguien añade o quita un comando sin querer, salta aquí.
 func TestRootHasV1Commands(t *testing.T) {
-	want := []string{"add", "externals", "init", "link", "sync", "update"}
+	want := []string{"add", "externals", "init", "link", "status", "sync", "update"}
 
 	got := make([]string, 0, len(rootCmd.Commands()))
 	for _, c := range rootCmd.Commands() {

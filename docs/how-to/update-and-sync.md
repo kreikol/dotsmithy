@@ -44,6 +44,27 @@ hacer nada, añade `--dry-run`.
 
 ## Ver cómo está una máquina
 
+¿Con qué perfil la montaste? ¿Tienes cambios en el contenido sin subir? Te lo
+cuenta `dots status`:
+
+```console
+$ dots status
+dotsmithy 1.0.0
+
+  perfil      laptop
+  máquina     laptop
+  dimensiones ux=desktop
+  capas       shared → ux/desktop → machines/laptop
+  contenido   /home/tu/.local/share/dots/content
+  remoto      git@github.com:tu-usuario/mis-dots.git
+  git         rama main · 1 fichero(s) con cambios sin commitear · todo subido a origin/main
+```
+
+> [!TIP]
+> Si quieres usar esos datos en tus dotfiles (por ejemplo, para enseñar el perfil
+> en el prompt), `dots status --format env` los da como variables listas para
+> `source`, y `--format json` como JSON.
+
 Para saber si falta algún paquete, sin instalar nada:
 
 ```sh

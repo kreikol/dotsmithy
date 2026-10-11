@@ -75,6 +75,7 @@ func init() {
 		newAddCmd(),
 		newSyncCmd(),
 		newExternalsCmd(),
+		newStatusCmd(),
 	)
 
 	// Textos de cobra/pflag en castellano (plantilla de uso, errores de flags,

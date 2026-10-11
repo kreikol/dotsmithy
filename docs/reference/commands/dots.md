@@ -27,6 +27,7 @@ dots [comando]
 | [`externals`](externals.md) | trae y prepara los recursos externos declarados |
 | [`init`](init.md) | arranca una máquina desde cero (perfil, contenido, estado, aplica) |
 | [`link`](link.md) | despliega los dotfiles a $HOME (symlinks, modelo Stow) |
+| [`status`](status.md) | enseña el perfil, las capas y el contenido de esta máquina (solo lectura) |
 | [`sync`](sync.md) | informa de qué paquetes declarados faltan por instalar (solo lectura) |
 | [`update`](update.md) | trae los cambios del contenido y los aplica |
 
