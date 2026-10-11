@@ -24,6 +24,8 @@ devbox shell           # entra al entorno (go, shellcheck, goreleaser)
 devbox run build       # compila el binario en dist/dots
 devbox run test        # go test ./...
 devbox run lint-shim   # shellcheck del shim de bootstrap
+devbox run docs        # regenera la referencia de comandos
+devbox run site-serve  # la web de la documentación, en local (localhost:8000)
 ```
 
 ### Tests de integración

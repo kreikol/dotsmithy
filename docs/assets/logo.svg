@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- El yunque del banner, en pequeño: logo y favicon de la web. -->
+  <g stroke="#ffb347" stroke-width="3" stroke-linecap="round">
+    <line x1="34" y1="16" x2="40" y2="6"/>
+    <line x1="28" y1="15" x2="25" y2="5"/>
+    <line x1="40" y1="19" x2="50" y2="13"/>
+  </g>
+  <path d="M4,26 Q16,22 22,22 L58,22 L58,30 L52,30 Q46,32 45,38 L45,46 L52,50 L52,56 L18,56 L18,50 L25,46 L25,38 Q24,32 18,31 Q10,30 4,26 Z"
+        fill="#9a9db0" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

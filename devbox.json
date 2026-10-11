@@ -3,7 +3,8 @@
   "packages": [
     "go@1.25",
     "shellcheck@latest",
-    "goreleaser@latest"
+    "goreleaser@latest",
+    "uv@latest"
   ],
   "env": {
     "GOFLAGS": "-mod=mod"
@@ -13,10 +14,12 @@
       "echo \"[devbox motor dotsmithy] go=$(go version 2>/dev/null | awk '{print $3}') shellcheck=$(shellcheck --version 2>/dev/null | awk '/version:/{print $2}')\""
     ],
     "scripts": {
-      "build": "go build -o dist/dots ./cmd/dots",
-      "test": "go test ./...",
-      "lint-shim": "shellcheck script/*.sh && bash -n script/install.sh",
-      "docs": "go generate ./tools/docgen"
+      "build":      "go build -o dist/dots ./cmd/dots",
+      "test":       "go test ./...",
+      "lint-shim":  "shellcheck script/*.sh && bash -n script/install.sh",
+      "docs":       "go generate ./tools/docgen",
+      "site-serve": "uv run --no-project --with-requirements tools/docsite/requirements.txt zensical serve",
+      "site-build": "uv run --no-project --with-requirements tools/docsite/requirements.txt zensical build --clean --strict"
     }
   }
 }

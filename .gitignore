@@ -7,6 +7,8 @@
 # Binario del motor que compila el workflow Lab (el contenido de muestra sí se
 # versiona, en tests/lab/content)
 /tests/lab/dots
+# Web de la documentación generada por zensical (se publica desde CI)
+/site/
 
 # Devbox: el store realizado es local de cada máquina (el manifiesto y el lock
 # sí se versionan para tener un entorno reproducible).

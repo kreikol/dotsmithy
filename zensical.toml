@@ -1,0 +1,88 @@
+# Web de la documentación (zensical). La fuente es docs/, la misma que se lee en
+# GitHub: aquí solo va cómo se presenta. Se construye con `devbox run site-build`
+# (o `site-serve` para verla en local) y se publica en GitHub Pages desde CI.
+[project]
+site_name = "dotsmithy"
+site_description = "La herrería de tus dotfiles"
+site_url = "https://kreikol.github.io/dotsmithy/"
+repo_url = "https://github.com/kreikol/dotsmithy"
+repo_name = "kreikol/dotsmithy"
+docs_dir = "docs"
+extra_css = ["assets/extra.css"]
+
+# La referencia de comandos solo enlaza su índice: las páginas de cada comando
+# las genera tools/docgen y se llega a ellas desde la tabla del índice, así un
+# comando nuevo no obliga a tocar este fichero.
+nav = [
+  { "Inicio" = "README.md" },
+  { "Tutoriales" = [
+    "tutorials/README.md",
+    "tutorials/first-machine.md",
+  ] },
+  { "Guías" = [
+    "how-to/README.md",
+    "how-to/add-a-dotfile.md",
+    "how-to/create-a-profile.md",
+    "how-to/manage-packages.md",
+    "how-to/write-a-hook.md",
+    "how-to/use-externals.md",
+    "how-to/update-and-sync.md",
+  ] },
+  { "Referencia" = [
+    "reference/README.md",
+    { "Comandos" = "reference/commands/README.md" },
+    "reference/manifest.md",
+    "reference/content-layout.md",
+  ] },
+  { "Explicaciones" = [
+    "explanation/README.md",
+    "explanation/engine-and-content.md",
+    "explanation/symlinks-not-templates.md",
+    "explanation/profiles-and-layers.md",
+  ] },
+]
+
+[project.theme]
+language = "es"
+logo = "assets/logo.svg"
+favicon = "assets/logo.svg"
+features = [
+  "navigation.tabs",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.top",
+  "navigation.footer",
+  "content.code.copy",
+  "search.highlight",
+]
+
+# Oscuro por defecto (el primero de la lista), con botón para pasar a claro, y el
+# naranja de forja del banner como color principal.
+[[project.theme.palette]]
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Cambiar a modo claro"
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Cambiar a modo oscuro"
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+tables = {}
+toc = { permalink = true, slugify = { object = "pymdownx.slugs.slugify", kwds = { case = "lower" } } }
+pymdownx.details = {}
+pymdownx.superfences = {}
+pymdownx.highlight = {}
+pymdownx.inlinehilite = {}
+
+# Los avisos de GitHub (> [!NOTE], > [!TIP]...) se ven como avisos también aquí,
+# así la misma fuente sirve para GitHub y para la web.
+[project.markdown_extensions.pymdownx.quotes]
+callouts = true

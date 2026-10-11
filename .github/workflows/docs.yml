@@ -1,0 +1,61 @@
+# Web de la documentación: construye docs/ con zensical y la publica en GitHub
+# Pages. En las PR solo construye (en modo estricto: un enlace o un ancla rota
+# para el build), así la web nunca se rompe al mergear. Al llegar a main, publica.
+name: Docs
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "zensical.toml"
+      - "tools/docsite/**"
+      - ".github/workflows/docs.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "zensical.toml"
+      - "tools/docsite/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Una sola publicación a la vez; si llega otra, la nueva manda.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: construir la web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.x
+      - name: instalar zensical
+        run: pip install -r tools/docsite/requirements.txt
+      - name: construir
+        run: zensical build --clean --strict
+      - uses: actions/upload-pages-artifact@v5
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: site
+
+  deploy:
+    name: publicar en GitHub Pages
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v5
+        id: deployment

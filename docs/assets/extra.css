@@ -1,0 +1,15 @@
+/* Colores de dotsmithy en la web de la documentación: el naranja de forja del
+   banner, en claro y en oscuro. */
+:root > * {
+  --md-primary-fg-color:        #e8692c;
+  --md-primary-fg-color--light: #ff8c42;
+  --md-primary-fg-color--dark:  #b84a17;
+  --md-accent-fg-color:         #ff8c42;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:        #ff8c42;
+  --md-primary-fg-color--light: #ffb347;
+  --md-primary-fg-color--dark:  #e8692c;
+  --md-hue: 230;
+}

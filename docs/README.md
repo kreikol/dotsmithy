@@ -1,5 +1,7 @@
 # Documentación de dotsmithy
 
+![dotsmithy: la herrería de tus dotfiles](assets/banner.svg)
+
 Aquí tienes todo lo necesario para usar dotsmithy. Está repartido según lo que
 necesites en cada momento, así que no hace falta leerlo de principio a fin.
 
